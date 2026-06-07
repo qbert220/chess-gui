@@ -6,9 +6,6 @@ error_reporting(E_ALL);
 
 include 'config.inc.php';
 
-$myuser = 'ianwillis';
-$mypass = 'No6wwgqYAuBjb[t0';
-$mydb = 'ianwillis';
 $id = '1';
 
 $mysqli = new mysqli("localhost", $myuser, $mypass, $mydb);
@@ -63,12 +60,12 @@ $mysqli -> close();
     <script src=js/jquery-4.0.0.min.js></script>
 </head>
 <body>
-<p id="message1">None</p>
-<p id="message2">None</p>
+<p><div id="message1"></div></p>
+<p><div id="message-fen"></div></p>
 <div class="board board-large" id="board"></div>
 <div id="output"></div>
-<p></p>
-<p id="message-fen">None</p>
+<br/>
+<p><div id="message-debug"></div></p>
 
 <script type="module">
     import {INPUT_EVENT_TYPE, COLOR, Chessboard, BORDER_TYPE} from "./cm-chessboard/src/Chessboard.js"
@@ -110,8 +107,8 @@ $mysqli -> close();
 
     const engineMoveCallback = function(chessboard) {
         return function(data, textStatus, jqXHR) {
-            document.getElementById("message1").innerText = JSON.stringify(data);
-//            document.getElementById("message2").innerText = textStatus;
+//            document.getElementById("message1").innerText = JSON.stringify(data);
+//            document.getElementById("message-debug").innerText = textStatus;
             if ((data.bestmove.length == 4) || (data.bestmove.length == 5)) {
                 let move = {from: data.bestmove.slice(0, 2), to: data.bestmove.slice(2, 4)};
                 if (data.bestmove.length == 5) {
@@ -133,7 +130,7 @@ $mysqli -> close();
             const fen = chess.fen()
             const url = "move.php?id=<?php echo urlencode($id) ?>&fen=" + encodeURIComponent(fen);
             document.getElementById("message-fen").innerText = fen;
-            document.getElementById("message2").innerText = url;
+//            document.getElementById("message-debug").innerText = url;
             $.get(url, engineMoveCallback(chessboard));
         }
     }
