@@ -4,9 +4,8 @@ ini_set('display_errors', '1');
 ini_set('display_startup_errors', '1');
 error_reporting(E_ALL);
 
-$myuser = 'ian';
-$mypass = 'No6wwgqYAuBjb[t0';
-$mydb = 'ian';
+include 'config.inc.php';
+
 $id = intval($_GET['id']);
 $fen = $_GET['fen'];
 
@@ -52,7 +51,7 @@ $descriptorspec = array(
    2 => array("file", "/tmp/ichess-error-output.txt", "w") // stderr is a file to write to
 );
 
-$process = proc_open('/var/www/html/chess/qchess', $descriptorspec, $pipes, '/tmp', null);
+$process = proc_open($qchess_exec, $descriptorspec, $pipes, '/tmp', null);
 if ($process == false) {
     die("Unable to open");
 }
@@ -63,6 +62,8 @@ $res = stream_get_contents($pipes[1]);
 fclose($pipes[0]);
 fclose($pipes[1]);
 proc_close($process);
+
+//echo $res;
 
 $lines = preg_split('/\r|\n/', $res, -1, PREG_SPLIT_NO_EMPTY);
 $json = array();

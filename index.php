@@ -4,9 +4,11 @@ ini_set('display_errors', '1');
 ini_set('display_startup_errors', '1');
 error_reporting(E_ALL);
 
-$myuser = 'ian';
+include 'config.inc.php';
+
+$myuser = 'ianwillis';
 $mypass = 'No6wwgqYAuBjb[t0';
-$mydb = 'ian';
+$mydb = 'ianwillis';
 $id = '1';
 
 $mysqli = new mysqli("localhost", $myuser, $mypass, $mydb);
