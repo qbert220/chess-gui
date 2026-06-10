@@ -4,45 +4,40 @@ ini_set('display_errors', '1');
 ini_set('display_startup_errors', '1');
 error_reporting(E_ALL);
 
-include 'config.inc.php';
+if (! isset($_GET['id'])) {
+    $id = bin2hex(random_bytes(10));
+    header('Location: https://chess.ianwillis.co.uk?id=' . $id);
+    exit;
+}
 
-$id = '1';
+$id = preg_replace('/^a-zA-Z0-9/', '', $_GET['id']);
+
+include 'config.inc.php';
 
 $mysqli = new mysqli("localhost", $myuser, $mypass, $mydb);
 
 // Check connection
 if ($mysqli -> connect_errno) {
-  echo "Failed to connect to MySQL: " . $mysqli -> connect_error;
-  exit();
+    echo "Failed to connect to MySQL: " . $mysqli -> connect_error;
+    exit();
 }
 
+$fen = '';
 $qry = "SELECT fen FROM chess WHERE id='$id'";
-$result = $mysqli -> query($qry);
+$result = $mysqli->query($qry);
 if (! $result) {
     die("Query failed");
 }
-if ( $result->num_rows == 0) {
-    echo "Inserting\n";
-    if (! $mysqli -> query("INSERT INTO chess (id) VALUES ('$id')")) {
-        die("Failed to insert");
-    }
-    $result = $mysqli -> query($qry);
-    if (! $result) {
-        die("Query failed");
-    }
-    if ( $result->num_rows == 0) {
-        die("Failed to get FEN");
-    }
+if ( $result->num_rows == 1) {
+    // Associative array
+    $row = $result->fetch_assoc();
+    $fen = $row['fen'];
 }
 
-// Associative array
-$row = $result -> fetch_assoc();
-//echo "FEN: " . $row['fen'];
-
 // Free result set
-$result -> free_result();
+$result->free_result();
 
-$mysqli -> close();
+$mysqli->close();
 
 ?>
 
@@ -62,10 +57,9 @@ $mysqli -> close();
 <body>
 <p><div id="message1"></div></p>
 <p><div id="message-fen"></div></p>
-<div class="board board-large" id="board"></div>
-<div id="output"></div>
-<br/>
-<p><div id="message-debug"></div></p>
+<div class="board" id="board"></div>
+<div class="clearfix"></div>
+<p><div id="message-debug">Fred</div></p>
 
 <script type="module">
     import {INPUT_EVENT_TYPE, COLOR, Chessboard, BORDER_TYPE} from "./cm-chessboard/src/Chessboard.js"
@@ -118,19 +112,25 @@ $mysqli -> close();
                 const fen = chess.fen()
                 document.getElementById("message-fen").innerText = fen;
                 chessboard.setPosition(fen, true);
-                if (! isGameOver()) {
+                const gameOverReason = isGameOver();
+                if (gameOverReason != "") {
+                    document.getElementById("message1").innerText = 'My Move: ' + data.bestmove + ' : ' + gameOverReason;
+                } else {
+                    document.getElementById("message1").innerText = 'My Move: ' + data.bestmove;
                     chessboard.enableMoveInput(inputHandler, COLOR.white)
                 }
             }
         };
     };
 
-    function makeEngineMove(chessboard) {
+    function makeEngineMove(humanMove, chessboard) {
         if (! isGameOver()) {
             const fen = chess.fen()
-            const url = "move.php?id=<?php echo urlencode($id) ?>&fen=" + encodeURIComponent(fen);
+            document.getElementById("message-fen").innerText = fen;
+            const url = "move.php?humanMove=" + humanMove + "&id=<?php echo urlencode($id) ?>&fen=" + encodeURIComponent(fen);
             document.getElementById("message-fen").innerText = fen;
 //            document.getElementById("message-debug").innerText = url;
+            document.getElementById("message1").innerText = 'Thinking...';
             $.get(url, engineMoveCallback(chessboard));
         }
     }
@@ -150,6 +150,7 @@ $mysqli -> close();
             return moves.length > 0
         } else if (event.type === INPUT_EVENT_TYPE.validateMoveInput) {
             const move = {from: event.squareFrom, to: event.squareTo, promotion: event.promotion}
+            let humanMove = event.squareFrom + event.squareTo;
             var result = false;
             try {
                 result = chess.move(move)
@@ -159,7 +160,7 @@ $mysqli -> close();
             if (result) {
                 event.chessboard.state.moveInputProcess.then(() => { // wait for the move input process has finished
                     event.chessboard.setPosition(chess.fen(), true).then(() => { // update position, maybe castled and wait for animation has finished
-                        makeEngineMove(event.chessboard)
+                        makeEngineMove(humanMove, event.chessboard)
                     })
                 })
             } else {
@@ -170,9 +171,10 @@ $mysqli -> close();
                         event.chessboard.showPromotionDialog(event.squareTo, COLOR.white, (result) => {
                             console.log("promotion result", result)
                             if (result.type === PROMOTION_DIALOG_RESULT_TYPE.pieceSelected) {
+                                humanMove = humanMove + result.piece.charAt(1);
                                 chess.move({from: event.squareFrom, to: event.squareTo, promotion: result.piece.charAt(1)})
                                 event.chessboard.setPosition(chess.fen(), true)
-                                makeEngineMove(event.chessboard)
+                                makeEngineMove(humanMove, event.chessboard)
                             } else {
                                 // promotion canceled
                                 event.chessboard.enableMoveInput(inputHandler, COLOR.white)
@@ -191,8 +193,11 @@ $mysqli -> close();
         }
     }
 
-//    chess.load('4k2r/7p/8/5P2/8/8/8/R3K3 w k - 0 2');
-
+    <?php
+        if (strlen($fen) > 0) {
+            echo "chess.load('$fen');";
+        }
+    ?>
 
     const board = new Chessboard(document.getElementById("board"), {
         position: chess.fen(),
