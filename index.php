@@ -59,7 +59,7 @@ $mysqli->close();
 <p><div id="message-fen"></div></p>
 <div class="board" id="board"></div>
 <div class="clearfix"></div>
-<p><div id="message-debug">Fred</div></p>
+<p><div id="message-debug"></div></p>
 
 <script type="module">
     import {INPUT_EVENT_TYPE, COLOR, Chessboard, BORDER_TYPE} from "./cm-chessboard/src/Chessboard.js"
