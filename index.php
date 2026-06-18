@@ -73,30 +73,24 @@ $mysqli->close();
 
     function isGameOver() {
         if (chess.isStalemate()) {
-            document.getElementById("message1").innerText = 'Stalemate';
-            return true;
+            return 'Stalemate';
         }
         if (chess.isCheckmate()) {
-            document.getElementById("message1").innerText = 'Checkmate';
-            return true;
+            return 'Checkmate';
         }
         if (chess.isDrawByFiftyMoves()) {
-            document.getElementById("message1").innerText = 'Draw by 50 move rule';
-            return true;
+            return 'Draw by 50 move rule';
         }
         if (chess.isInsufficientMaterial()) {
-            document.getElementById("message1").innerText = 'Draw by insufficient material';
-            return true;
+            return 'Draw by insufficient material';
         }
         if (chess.isThreefoldRepetition()) {
-            document.getElementById("message1").innerText = 'Draw by threefold repetition';
-            return true;
+            return 'Draw by threefold repetition';
         }
         if (chess.isGameOver()) {
-            document.getElementById("message1").innerText = 'Game Over';
-            return true;
+            return 'Game Over';
         }
-        return false;
+        return 'No';
     }
 
     const engineMoveCallback = function(chessboard) {
@@ -112,26 +106,36 @@ $mysqli->close();
                 const fen = chess.fen()
                 document.getElementById("message-fen").innerText = fen;
                 chessboard.setPosition(fen, true);
-                const gameOverReason = isGameOver();
-                if (gameOverReason != "") {
-                    document.getElementById("message1").innerText = 'My Move: ' + data.bestmove + ' : ' + gameOverReason;
-                } else {
-                    document.getElementById("message1").innerText = 'My Move: ' + data.bestmove;
+                const gameOver = isGameOver();
+                let msg = 'My Move: ' + data.bestmove;
+                if (gameOver == 'No') {
+                    if (chess.inCheck()) {
+                        msg += ' : Check!';
+                    }
                     chessboard.enableMoveInput(inputHandler, COLOR.white)
+                } else {
+                    msg += ' : ' + gameOver;
                 }
+                document.getElementById("message1").innerText = msg;
             }
         };
     };
 
     function makeEngineMove(humanMove, chessboard) {
-        if (! isGameOver()) {
+        const gameOver = isGameOver();
+        if (gameOver == 'No') {
             const fen = chess.fen()
             document.getElementById("message-fen").innerText = fen;
             const url = "move.php?humanMove=" + humanMove + "&id=<?php echo urlencode($id) ?>&fen=" + encodeURIComponent(fen);
-            document.getElementById("message-fen").innerText = fen;
 //            document.getElementById("message-debug").innerText = url;
-            document.getElementById("message1").innerText = 'Thinking...';
+            if (chess.inCheck()) {
+                document.getElementById("message1").innerText = 'I\'m in check... Thinking...';
+            } else {
+                document.getElementById("message1").innerText = 'Thinking...';
+            }
             $.get(url, engineMoveCallback(chessboard));
+        } else {
+            document.getElementById("message1").innerText = gameOver;
         }
     }
 
@@ -198,6 +202,13 @@ $mysqli->close();
             echo "chess.load('$fen');";
         }
     ?>
+
+    const gameOver = isGameOver();
+    if (gameOver == 'No') {
+        document.getElementById("message1").innerText = 'Your move...';
+    } else {
+        document.getElementById("message1").innerText = gameOver;
+    }
 
     const board = new Chessboard(document.getElementById("board"), {
         position: chess.fen(),
